@@ -58,13 +58,25 @@ const userController = {
     //   })
     //   .catch(err => next(err))
     return User.findByPk(req.params.id, {
-      include: { model: Comment, include: Restaurant }
+      include: [
+        { model: Comment, include: Restaurant },
+        { model: User, as: 'Followers' },
+        { model: User, as: 'Followings' },
+        { model: Restaurant, as: 'FavoritedRestaurants' }
+      ]
     })
       .then(user => {
         if (!user) throw new Error("User doesn't exist!")
-        // user = user.toJSON()
-        // user.commentCounts = user.Comments.length // test 檔案不給過，不能用
-        return res.render('users/profile', { user: user.toJSON() })
+        const result = user.toJSON()
+        const comments = user.toJSON().Comments
+        const restaurandIDs = user.toJSON().Comments.map(e => e.restaurantId)
+        // 把當下項目與後續項目比較，有相同就不留
+        const newComments = comments.filter(comment => {
+          restaurandIDs.splice(0, 1) // 砍掉第一項，拿剩下項目比較 (會改變原變數)
+          return !(restaurandIDs.some(id => comment.restaurantId === id))
+        })
+        result.Comments = newComments
+        return res.render('users/profile', { user: result })
       })
       .catch(err => next(err))
   },
