@@ -1,7 +1,7 @@
 const path = require('path')
 const express = require('express')
 const handlebars = require('express-handlebars')
-const { pages } = require('./routes')
+const { pages, apis } = require('./routes')
 const flash = require('connect-flash')
 const session = require('express-session')
 const passport = require('./config/passport')
@@ -39,6 +39,7 @@ app.use((req, res, next) => {
   next()
 })
 
+app.use('/api', apis)
 app.use(pages)
 
 app.listen(port, () => {
