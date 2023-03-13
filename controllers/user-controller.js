@@ -28,7 +28,7 @@ const userController = {
         res.redirect('/signin')
       })
       .catch(err => next(err))
-      // 在 express 裡，若 next() 有參數，就會認為要傳錯誤訊息，因此會轉到處理錯誤用的 middleware
+    // 在 express 裡，若 next() 有參數，就會認為要傳錯誤訊息，因此會轉到處理錯誤用的 middleware
   },
   signInPage: (req, res) => {
     res.render('signin')
@@ -57,6 +57,7 @@ const userController = {
     //     return res.render('users/profile', { user, comments })
     //   })
     //   .catch(err => next(err))
+    // const currentUser = req.user
     return User.findByPk(req.params.id, {
       include: [
         { model: Comment, include: Restaurant },
@@ -69,20 +70,18 @@ const userController = {
         if (!user) throw new Error("User doesn't exist!")
         const result = user.toJSON()
         const comments = user.toJSON().Comments
-        const restaurandIDs = user.toJSON().Comments.map(e => e.restaurantId)
+        const restaurandIDs = comments.map(e => e.restaurantId)
         // 把當下項目與後續項目比較，有相同就不留
-        const newComments = comments.filter(comment => {
-          restaurandIDs.splice(0, 1) // 砍掉第一項，拿剩下項目比較 (會改變原變數)
-          return !(restaurandIDs.some(id => comment.restaurantId === id))
-        })
+        const newComments = comments.filter((comment, i) =>
+          !(restaurandIDs.slice(i + 1).some(id => comment.restaurantId === id)))
+        // (上1) 拿 "只取第 i+1 項以後的陣列"，去與第 i 項比對，有相同值就回傳 false (不保留)
         result.Comments = newComments
-        return res.render('users/profile', { user: result })
+        return res.render('users/profile', { showedUser: result })
       })
       .catch(err => next(err))
   },
   editUser: (req, res, next) => {
-    // const { name, image } = req.body
-    // res.render('users/edit')
+    if (req.user.id !== Number(req.params.id)) throw new Error('Sorry. You do not own this account.')
     return User.findByPk(req.params.id, { raw: true })
       .then(user => {
         if (!user) throw new Error("User doesn't exist!")
@@ -93,12 +92,10 @@ const userController = {
   putUser: (req, res, next) => {
     const { name } = req.body
     const id = req.params.id
+    if (req.user.id !== Number(id)) throw new Error('Sorry. You do not own this account.')
     if (!name) throw new Error('User name is required!')
     const { file } = req
-    return Promise.all([
-      User.findByPk(id),
-      imgurFileHandler(file)
-    ])
+    return Promise.all([User.findByPk(id), imgurFileHandler(file)])
       .then(([user, filePath]) => {
         if (!user) throw new Error("User doesn't exist!")
         return user.update({ name, image: filePath || user.image }) // image 路徑，更新或是沿用舊值
@@ -198,7 +195,7 @@ const userController = {
         // 整理 users 資料，把每個 user 項目都拿出來處理一次，並把新陣列儲存在 users 裡
         const result = users
           .map(user => ({
-          // 整理格式
+            // 整理格式
             ...user.toJSON(),
             // 計算追蹤者人數
             followerCount: user.Followers.length,
@@ -246,7 +243,6 @@ const userController = {
       .then(() => res.redirect('back'))
       .catch(err => next(err))
   }
-
 }
 
 module.exports = userController
