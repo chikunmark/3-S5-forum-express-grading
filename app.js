@@ -1,7 +1,7 @@
 const path = require('path')
 const express = require('express')
 const handlebars = require('express-handlebars')
-const routes = require('./routes')
+const { pages } = require('./routes')
 const flash = require('connect-flash')
 const session = require('express-session')
 const passport = require('./config/passport')
@@ -39,7 +39,7 @@ app.use((req, res, next) => {
   next()
 })
 
-app.use(routes)
+app.use(pages)
 
 app.listen(port, () => {
   console.info(`Example app listening on port http://localhost:${port}`)
