@@ -56,7 +56,6 @@ const restaurantServices = {
       // 上面已用 callback (可處理錯誤)，所以這裡就不用 next，改用下1
       .catch(err => callback(err))
   }
-
 }
 
 module.exports = restaurantServices
